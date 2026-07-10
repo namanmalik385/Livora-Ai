@@ -3,7 +3,7 @@ import json
 import re
 import requests
 from dotenv import load_dotenv
-from db import build_full_llm_request
+from services.prompt_builder import build_full_llm_request
 
 load_dotenv()  # reads .env file and loads variables into environment
 

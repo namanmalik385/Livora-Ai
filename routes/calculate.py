@@ -73,7 +73,8 @@ def calculate():
             anti_hcv=patient_data.get("anti_hcv"),
             ast_uln=ast_uln,
             apri=round(apri_score, 2),
-            fib4=round(fib4_score, 2)
+            fib4=round(fib4_score, 2),
+            ultrasound_prediction=patient_data.get("ultrasound_prediction")
         )
 
         if report_id is None:
@@ -97,7 +98,8 @@ def calculate():
             "hbsag": patient_data.get("hbsag"),
             "anti_hcv": patient_data.get("anti_hcv"),
             "fib4": round(fib4_score, 2),
-            "apri": round(apri_score, 2)
+            "apri": round(apri_score, 2),
+            "ultrasound_prediction": patient_data.get("ultrasound_prediction"),
         }
 
         return jsonify({

@@ -9,6 +9,7 @@ from parsers.cbc_parser import parse_cbc
 from parsers.coagulation_parser import parse_coagulation
 from parsers.afp_parser import parse_afp
 from parsers.hepatitis_parser import parse_hepatitis
+from services.ultrasound_model import predict_liver_condition
 
 from models.patient_data import patient_data
 
@@ -52,6 +53,18 @@ def upload_file():
 
         file.save(filepath)
 
+        if report_type.lower() == "ultrasound":
+
+            result = predict_liver_condition(filepath)
+
+            patient_data["ultrasound_prediction"] = result
+
+            return jsonify({
+                "success": True,
+                "report_type": report_type,
+                "prediction": result
+            })
+
         # Extract text
         text = extract_text(filepath)
 
@@ -72,7 +85,7 @@ def upload_file():
 
         elif report_type.lower() == "hepatitis":
            results = parse_hepatitis(text)
-
+        
         else:
             return jsonify({
                 "success": False,

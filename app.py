@@ -5,6 +5,7 @@ from routes.upload import upload_bp
 from routes.calculate import calculate_bp
 from routes.insights import insights_bp
 
+
 app = Flask(__name__)
 
 app.register_blueprint(auth_bp)
