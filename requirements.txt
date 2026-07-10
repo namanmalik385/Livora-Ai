@@ -8,3 +8,4 @@ numpy>=2.4.6
 tensorflow>=2.21.0
 gunicorn>=23.0.0
 python-dotenv>=1.2.2
+Flask-CORS>=6.0.0
