@@ -11,15 +11,16 @@ def signup_route():
 
     data = request.get_json()
 
+    full_name = data.get("full_name")
     email = data.get("email")
     password = data.get("password")
     confirm_password = data.get("confirm_password")
 
 
-    if not email or not password or not confirm_password:
+    if not full_name or not email or not password or not confirm_password:
         return jsonify({
             "success": False,
-            "error": "email, password and confirm_password are required"
+            "error": "full_name, email, password and confirm_password are required"
         }), 400
 
 
@@ -33,6 +34,7 @@ def signup_route():
     user_id = signup(
         email,
         password,
+        full_name,
         None,
         None,
         None,
@@ -123,19 +125,18 @@ def login_route():
 
     data=request.get_json()
 
-
-    user_id=login(
+    user = login(
         data.get("email"),
         data.get("password")
     )
 
-
-    if user_id is None:
+    if user is None:
         return jsonify({
-            "error":"Invalid credentials"
-        }),401
-
-
+            "success": False,
+            "error": "Invalid credentials"
+        }), 401
+    
     return jsonify({
-        "user_id":user_id
-    }),200
+        "success": True,
+        "user": user
+    }), 200

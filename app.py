@@ -21,7 +21,7 @@ app.register_blueprint(report_analysis_bp)
 def home():
     return {
         "success": True,
-        "message": "Liver Health Backend is running"
+        "message": "Livora Backend is running"
     }, 200
 
 if __name__ == "__main__":

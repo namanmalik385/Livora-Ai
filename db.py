@@ -249,21 +249,48 @@ def signup(email, password, name, age, gender, weight, height, diabetes_status,
 
 def login(email, password):
     conn = get_connection()
+
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, password FROM users WHERE email=%s", (email,))
+            cur.execute("""
+                SELECT
+                    id,
+                    password,
+                    name,
+                    email,
+                    age,
+                    gender
+                FROM users
+                WHERE email=%s
+            """, (email,))
+
             row = cur.fetchone()
+
     finally:
         conn.close()
 
     if row is None:
         return None
 
-    user_id, stored_password = row
-    if stored_password == password:
-        return user_id
-    return None
+    (
+        user_id,
+        stored_password,
+        name,
+        email,
+        age,
+        gender
+    ) = row
 
+    if stored_password != password:
+        return None
+
+    return {
+        "user_id": user_id,
+        "full_name": name,
+        "email": email,
+        "age": age,
+        "gender": gender
+    }
 
 def update_user_profile(user_id, age, gender, weight, height, diabetes_status,
                          hypertension, previous_liver_disease, family_history,
