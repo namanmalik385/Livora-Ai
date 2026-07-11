@@ -35,7 +35,7 @@ def signup_route():
         email,
         password,
         full_name,
-        None,
+        
         None,
         None,
         None,
