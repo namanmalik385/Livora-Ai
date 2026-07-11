@@ -17,5 +17,12 @@ app.register_blueprint(calculate_bp)
 app.register_blueprint(insights_bp)
 app.register_blueprint(report_analysis_bp)
 
+@app.route("/", methods=["GET"])
+def home():
+    return {
+        "success": True,
+        "message": "Liver Health Backend is running"
+    }, 200
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
