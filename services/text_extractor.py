@@ -23,10 +23,7 @@ def extract_text(pdf_path):
 
         return text
 
-    images = convert_from_path(
-        pdf_path,
-        poppler_path=r"C:\poppler\Library\bin"
-    )
+    images = convert_from_path(pdf_path)
 
     ocr_text = ""
 
