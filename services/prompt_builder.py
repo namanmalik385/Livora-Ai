@@ -81,23 +81,28 @@ def build_llm_prompt(user_id):
     )
 
     if not report_rows:
-        prompt += "No previous reports on record. This is the patient's first report.\n"
-        return prompt
-
-    for row in report_rows:
-        (ast, alt, bilirubin, albumin, platelets, inr, pt,
-         afp, hbsag, anti_hcv, apri, fib4, ultrasound_prediction, date_added) = row
-
-        line = (
-            f"- {date_added} | AST: {fmt(ast)} U/L, ALT: {fmt(alt)} U/L, "
-            f"Bilirubin: {fmt(bilirubin)} mg/dL, Albumin: {fmt(albumin)} g/dL, "
-            f"Platelets: {fmt(platelets)}, INR: {fmt(inr)}, PT: {fmt(pt)}, "
-            f"AFP: {fmt(afp)}, HBsAg: {fmt(hbsag)}, Anti-HCV: {fmt(anti_hcv)}, "
-            f"APRI: {apri if apri is not None else 'insufficient data'}, "
-            f"FIB-4: {fib4 if fib4 is not None else 'insufficient data'}, "
-            f"Liver Imaging Result: {fmt(ultrasound_prediction)}"
+        prompt += (
+            "BIOMARKER_DATA_AVAILABLE: NO\n"
+            "No previous reports on record.\n"
         )
-        prompt += line + "\n"
+    else:
+        prompt += "BIOMARKER_DATA_AVAILABLE: YES\n\n"
+
+        for row in report_rows:
+            (ast, alt, bilirubin, albumin, platelets, inr, pt,
+            afp, hbsag, anti_hcv, apri, fib4, ultrasound_prediction, date_added) = row
+
+            line = (
+                f"- {date_added} | AST: {fmt(ast)} U/L, ALT: {fmt(alt)} U/L, "
+                f"Bilirubin: {fmt(bilirubin)} mg/dL, Albumin: {fmt(albumin)} g/dL, "
+                f"Platelets: {fmt(platelets)}, INR: {fmt(inr)}, PT: {fmt(pt)}, "
+                f"AFP: {fmt(afp)}, HBsAg: {fmt(hbsag)}, Anti-HCV: {fmt(anti_hcv)}, "
+                f"APRI: {apri if apri is not None else 'insufficient data'}, "
+                f"FIB-4: {fib4 if fib4 is not None else 'insufficient data'}, "
+                f"Liver Imaging Result: {fmt(ultrasound_prediction)}"
+            )
+
+            prompt += line + "\n"
 
     return prompt
 
@@ -108,46 +113,132 @@ def build_full_llm_request(user_id):
         return None
 
     instructions = """
-Use the following liver health scoring criteria when interpreting the patient's data:
+You are a liver health assessment engine.
 
-Liver Health Score = (Biomarker Score x 35%) + (Fibrosis Score x 25%) + (Ultrasound Score x 25%) + (Comorbidity Score x 3%) + (Metabolic Score x 12%)
+IMPORTANT:
+The response must be deterministic and consistent.
+Given the same input data, always produce approximately the same health score.
+Do not randomly adjust scores between requests.
 
-Scoring components:
-- Liver Function (35%): ALT, AST, AST/ALT ratio, bilirubin, albumin, INR/PT
-- Fibrosis Risk (25%): platelet count, FIB-4 score, APRI score, HBsAg, Anti-HCV
-- Ultrasound Assessment (20%): Normal liver, HCC, Hemangioma
-- Comorbidities (10%): diabetes, hypertension, previous liver disease, family history
-- Metabolic Health (10%): BMI, age
+ASSESSMENT RULES
 
-Interpret higher-risk findings as lowering the score and improving values as raising the score. When a component is missing, estimate conservatively and note insufficient data in the explanation.
+STEP 1: Determine whether biomarker data is available.
 
-Respond with ONLY a raw JSON object. Do not include markdown code fences, explanations, or any text before or after the JSON. Your entire response must be valid, directly parseable JSON in exactly this structure:
+If the patient has NO laboratory report data:
+- Use ONLY onboarding/profile information.
+- Do NOT assume any laboratory values.
+- Do NOT invent biomarker results.
+- Generate a PRELIMINARY BASELINE HEALTH SCORE.
+
+Use the following risk factors:
+- Age
+- BMI
+- Diabetes status
+- Hypertension
+- Previous liver disease
+- Family history
+- Activity level
+- Exercise frequency
+- Alcohol consumption
+- Smoking status
+
+Baseline Score Guidance:
+- Very low risk profile: 85-95
+- Mild risk factors: 70-84
+- Moderate risk factors: 55-69
+- High risk profile: 30-54
+
+When no biomarker data exists:
+- AST status must be ""
+- ALT status must be ""
+- Bilirubin status must be ""
+- Albumin status must be ""
+- AST value must be "N/A"
+- ALT value must be "N/A"
+- Bilirubin value must be "N/A"
+- Albumin value must be "N/A"
+
+Set:
+"apri_fib4_interpretation": "Upload a liver report to calculate APRI and FIB-4 scores."
+
+The AI insights should:
+1. Explain the onboarding-based score.
+2. Summarize major risk factors.
+3. Recommend uploading reports for a more accurate assessment.
+
+
+STEP 2: If laboratory report data IS available:
+
+Use BOTH:
+- Onboarding/profile information
+AND
+- Biomarker information
+
+Consider:
+- AST
+- ALT
+- Bilirubin
+- Albumin
+- INR
+- PT
+- Platelets
+- AFP
+- HBsAg
+- Anti-HCV
+- APRI
+- FIB-4
+- Ultrasound findings
+
+Health Score Weighting:
+- Biomarkers & Liver Function: 60%
+- APRI/FIB-4 & Fibrosis Risk: 20%
+- Ultrasound Findings: 10%
+- Lifestyle & Comorbidities: 10%
+
+Use the MOST RECENT report values when populating biomarker flags.
+
+Interpretation Rules:
+- Higher AST, ALT, Bilirubin, INR and PT decrease the score.
+- Lower Albumin decreases the score.
+- Higher APRI and FIB-4 decrease the score.
+- Abnormal ultrasound findings decrease the score.
+- Diabetes, hypertension, smoking, obesity and heavy alcohol use decrease the score.
+
+If multiple reports exist:
+- Compare latest report against previous reports.
+- Mention whether liver health appears improving, worsening or stable.
+
+IMPORTANT:
+For identical patient data, keep the score consistent.
+Do not make large score changes unless biomarker values justify them.
+
+Respond with ONLY a raw JSON object.
 
 {
   "overall_health_score": <integer 0-100>,
   "flags": {
     "ast": {
-      "status": "<Normal/High/N/A>",
-      "value": "<latest AST value>"
+      "status": "<Normal/High/Low or empty string>",
+      "value": "<latest value or N/A>"
     },
     "alt": {
-      "status": "<Normal/High/N/A>",
-      "value": "<latest ALT value>"
+      "status": "<Normal/High/Low or empty string>",
+      "value": "<latest value or N/A>"
     },
     "bilirubin": {
-      "status": "<Normal/High/N/A>",
-      "value": "<latest bilirubin value>"
+      "status": "<Normal/High/Low or empty string>",
+      "value": "<latest value or N/A>"
     },
     "albumin": {
-      "status": "<Normal/Low/N/A>",
-      "value": "<latest albumin value>"
+      "status": "<Normal/High/Low or empty string>",
+      "value": "<latest value or N/A>"
     }
   },
-  "apri_fib4_interpretation": "<one sentence interpreting the most recent APRI and FIB-4 values if available, otherwise state insufficient data>",
+  "apri_fib4_interpretation": "<one sentence>",
   "ai_insights": [
-    "<sentence about the most notable current value>",
-    "<sentence comparing to previous record if history exists, otherwise note this is baseline>",
-    "<additional relevant insight sentence>"
+    "<insight 1>",
+    "<insight 2>",
+    "<insight 3>"
   ]
 }
 """

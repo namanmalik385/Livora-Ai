@@ -108,15 +108,22 @@ def build_report_analysis_request(user_id):
         return None
 
     instructions = """
+You are a liver report analysis engine.
+
+IMPORTANT:
+- Produce consistent results for identical patient data.
+- Do not randomly change scores between requests.
+- Use only information provided in the patient profile and report history.
+- Do not invent missing biomarker values.
+
 Analyze ONLY the most recent report values while using older reports as historical context.
 
-When determining overall health score and risk level, consider:
+Use the following information:
 
-- Current biomarkers
-- Biomarker trends over time
-- BMI
+Patient Factors:
 - Age
 - Gender
+- BMI
 - Diabetes
 - Hypertension
 - Previous liver disease
@@ -126,44 +133,102 @@ When determining overall health score and risk level, consider:
 - Alcohol consumption
 - Smoking status
 
-Heavy alcohol use, smoking, obesity, diabetes,
-hypertension, previous liver disease and abnormal
-ultrasound findings should increase risk level.
+Biomarkers:
+- AST
+- ALT
+- Bilirubin
+- Albumin
+- Platelets
+- INR
+- PT
+- AFP
+- HBsAg
+- Anti-HCV
+- APRI
+- FIB-4
+- Ultrasound findings
 
-Determine:
+Health Score Guidance:
 
-1. Overall liver health score (0-100)
-2. Risk level:
-   - Low
-   - Moderate
-   - High
-   - Critical
+90-100:
+Normal biomarkers with low-risk profile.
 
-3. Biomarker status for:
-   AST
-   ALT
-   Bilirubin
-   Albumin
-   Platelets
-   INR
-   AFP
+75-89:
+Minor abnormalities or mild risk factors.
 
-For each biomarker provide:
-- value
-- status
+60-74:
+Moderate abnormalities or multiple risk factors.
 
-Status examples:
+40-59:
+Significant abnormalities, fibrosis risk or abnormal imaging.
+
+0-39:
+Severe abnormalities or strong evidence of advanced liver disease.
+
+Risk Level:
+
+Low
+Moderate
+High
+Critical
+
+Use the MOST RECENT report values when determining biomarker status.
+
+If historical reports exist:
+- Compare current values with previous values.
+- Mention whether liver health is improving, worsening or stable.
+
+Biomarker Status Rules:
+
+AST:
 - Normal
 - Mildly Elevated
 - Elevated
 - Severely Elevated
+
+ALT:
+- Normal
+- Mildly Elevated
+- Elevated
+- Severely Elevated
+
+Bilirubin:
+- Normal
+- Elevated
+- Severely Elevated
+
+Albumin:
+- Normal
 - Low
 - Severely Low
-- N/A
 
-Also generate a patient-friendly explanation for every available biomarker.
+Platelets:
+- Normal
+- Low
+- Severely Low
 
-Respond ONLY as valid JSON.
+INR:
+- Normal
+- Elevated
+
+AFP:
+- Normal
+- Elevated
+
+APRI:
+- Low Risk
+- Intermediate Risk
+- High Risk
+
+FIB-4:
+- Low Risk
+- Intermediate Risk
+- High Risk
+
+Respond ONLY as a raw JSON object.
+Do not include markdown code fences.
+Do not include explanations before or after the JSON.
+Your entire response must be directly parseable JSON.
 
 {
   "overall_health_score": <integer>,
@@ -199,12 +264,12 @@ Respond ONLY as valid JSON.
       "status": "<status>"
     },
     "apri": {
-    "value": "<value>",
-    "status": "<status>"
+      "value": "<value>",
+      "status": "<status>"
     },
     "fib4": {
-    "value": "<value>",
-    "status": "<status>"
+      "value": "<value>",
+      "status": "<status>"
     }
   },
 

@@ -25,7 +25,6 @@ def calculate():
         required_fields = [
             "ast",
             "alt",
-            "platelets",
             "ast_uln"
         ]
 
@@ -42,21 +41,31 @@ def calculate():
                 "missing_fields": missing_fields
             }), 400
 
-        fib4_score = calculate_fib4(
-            age=age,
-            ast=patient_data["ast"],
-            alt=patient_data["alt"],
-            platelets=patient_data["platelets"]
-        )
+        has_platelets = patient_data.get("platelets") is not None
 
-        apri_score = calculate_apri(
-            ast=patient_data["ast"],
-            ast_uln=ast_uln,
-            platelets=patient_data["platelets"]
-        )
+        fib4_score = None
+        apri_score = None
 
-        patient_data["fib4"] = round(fib4_score, 2)
-        patient_data["apri"] = round(apri_score, 2)
+        if has_platelets:
+
+            fib4_score = calculate_fib4(
+                age=age,
+                ast=patient_data["ast"],
+                alt=patient_data["alt"],
+                platelets=patient_data["platelets"]
+            )
+
+            apri_score = calculate_apri(
+                ast=patient_data["ast"],
+                ast_uln=ast_uln,
+                platelets=patient_data["platelets"]
+            )
+
+            fib4_score = round(fib4_score, 2)
+            apri_score = round(apri_score, 2)
+
+            patient_data["fib4"] = fib4_score
+            patient_data["apri"] = apri_score
 
         report_id = add_report(
             user_id=user_id,
@@ -72,8 +81,8 @@ def calculate():
             hbsag=patient_data.get("hbsag"),
             anti_hcv=patient_data.get("anti_hcv"),
             ast_uln=ast_uln,
-            apri=round(apri_score, 2),
-            fib4=round(fib4_score, 2),
+            apri=apri_score,
+            fib4=fib4_score,
             ultrasound_prediction=patient_data.get("ultrasound_prediction")
         )
 
@@ -97,16 +106,16 @@ def calculate():
             "afp": patient_data.get("afp"),
             "hbsag": patient_data.get("hbsag"),
             "anti_hcv": patient_data.get("anti_hcv"),
-            "fib4": round(fib4_score, 2),
-            "apri": round(apri_score, 2),
+            "fib4": fib4_score,
+            "apri": apri_score,
             "ultrasound_prediction": patient_data.get("ultrasound_prediction"),
         }
 
         return jsonify({
             "success": True,
             "report_id": report_id,
-            "fib4": round(fib4_score, 2),
-            "apri": round(apri_score, 2),
+            "fib4": fib4_score,
+            "apri": apri_score,
             "report_data": report_data
         })
     
