@@ -85,8 +85,30 @@ graph TD
 
 ---
 
-## 🧠 AI Models & AMD ROCm Optimization
+## 🧠 Fireworks, AI Models & AMD ROCm Optimization 
+## 🔥 Fireworks AI Integration
 
+The platform uses **Fireworks AI**, a serverless LLM inference platform, to turn raw biomarker data and ultrasound predictions into patient-friendly clinical insights.
+
+**Model:** `accounts/fireworks/models/gpt-oss-120b` — chosen for its low cost ($0.15/M input, $0.60/M output), function-calling support, and strong structured-JSON reliability, without the overhead of a larger frontier model.
+
+**How it works:**
+- All clinical scores (APRI, FIB-4, BMI) are calculated deterministically in Python — the LLM never invents numbers, it only interprets them.
+- `prompt_builder.py` assembles the patient profile, full report history, and CNN ultrasound result into a structured prompt with an embedded scoring rubric.
+- The model is instructed to return **only raw JSON**, parsed and validated in `llm.py` before reaching the frontend.
+- A low temperature (`0.3`) keeps scores consistent across repeated runs on the same data.
+
+```python
+payload = {
+    "model": "accounts/fireworks/models/gpt-oss-120b",
+    "max_tokens": 1500,
+    "temperature": 0.3,
+    "messages": [
+        {"role": "system", "content": "You are a medical analysis assistant. Provide responses in valid JSON format only."},
+        {"role": "user", "content": prompt}
+    ]
+}
+```
 ### 📷 Deep Learning Ultrasound Model
 The platform integrates an image-based computer vision classifier built on **TensorFlow/Keras** utilizing a fine-tuned **MobileNetV2** backbone:
 *   **Accuracy**: The model achieved a **97% accuracy** rating on validation datasets for classifying liver scans.
