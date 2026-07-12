@@ -14,7 +14,7 @@
 > **Repository Split Notice**
 > This project is split into two repositories:
 > 1. **This repository contains the backend code.**
-> 2. The frontend mobile application repository can be found at **[Frontend Repository](https://github.com/ishaqashraf/levora-ai)** (please add the hyperlink to your frontend repo here).
+> 2. The frontend mobile application repository can be found at **[Frontend Repository](https://github.com/ishaqashraf/levora-ai)** 
 
 ---
 
