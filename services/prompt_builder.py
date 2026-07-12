@@ -1,5 +1,120 @@
 from db import get_connection
 
+def calculate_health_score(user_row, latest_report=None):
+
+    score = 100
+
+    (
+        name,
+        age,
+        gender,
+        weight,
+        height,
+        bmi,
+        diabetes_status,
+        hypertension,
+        previous_liver_disease,
+        family_history,
+        activity_level,
+        exercise_frequency,
+        alcohol_consumption,
+        smoking_status
+    ) = user_row
+
+    # Lifestyle penalties
+
+    if diabetes_status:
+        score -= 10
+
+    if hypertension:
+        score -= 5
+
+    if previous_liver_disease:
+        score -= 15
+
+    if family_history:
+        score -= 5
+
+    if smoking_status == "current":
+        score -= 10
+    elif smoking_status == "former":
+        score -= 5
+
+    if alcohol_consumption == "heavy":
+        score -= 15
+    elif alcohol_consumption == "moderate":
+        score -= 8
+    elif alcohol_consumption == "occasional":
+        score -= 3
+
+    if bmi is not None:
+        if bmi >= 30:
+            score -= 10
+        elif bmi >= 25:
+            score -= 5
+
+    # Biomarker penalties
+
+    if latest_report:
+
+        (
+            ast,
+            alt,
+            bilirubin,
+            albumin,
+            platelets,
+            inr,
+            pt,
+            afp,
+            hbsag,
+            anti_hcv,
+            apri,
+            fib4,
+            ultrasound_prediction,
+            date_added
+        ) = latest_report
+
+        if ast is not None and ast > 40:
+            score -= min(15, (ast - 40) / 5)
+
+        if alt is not None and alt > 40:
+            score -= min(15, (alt - 40) / 5)
+
+        if bilirubin is not None and bilirubin > 1.2:
+            score -= 10
+
+        if albumin is not None and albumin < 3.5:
+            score -= 10
+
+        if platelets is not None and platelets < 150:
+            score -= 10
+
+        if apri is not None:
+            if apri > 1.5:
+                score -= 15
+            elif apri > 0.7:
+                score -= 8
+
+        if fib4 is not None:
+            if fib4 > 3.25:
+                score -= 15
+            elif fib4 > 1.45:
+                score -= 8
+
+        if ultrasound_prediction:
+            prediction = str(ultrasound_prediction).lower()
+
+            if "cirrhosis" in prediction:
+                score -= 25
+            elif "fibrosis" in prediction:
+                score -= 15
+            elif "fatty" in prediction:
+                score -= 10
+
+    score = max(0, min(100, round(score)))
+
+    return score
+
 def build_llm_prompt(user_id):
     conn = get_connection()
     try:
@@ -58,6 +173,13 @@ def build_llm_prompt(user_id):
         smoking_status
     ) = user_row
 
+    latest_report = report_rows[-1] if report_rows else None
+
+    health_score = calculate_health_score(
+        user_row,
+        latest_report
+    )
+
     def fmt(v):
         return v if v is not None else "N/A"
 
@@ -77,10 +199,11 @@ def build_llm_prompt(user_id):
         f"Exercise Frequency: {fmt(exercise_frequency)}\n"
         f"Alcohol Consumption: {fmt(alcohol_consumption)}\n"
         f"Smoking Status: {fmt(smoking_status)}\n\n"
+        f"Precalculated Health Score: {health_score}\n\n"
         f"Liver Panel History (chronological order):\n"
     )
 
-    if not report_rows:
+    if not report_rows: 
         prompt += (
             "BIOMARKER_DATA_AVAILABLE: NO\n"
             "No previous reports on record.\n"
@@ -120,6 +243,15 @@ The response must be deterministic and consistent.
 Given the same input data, always produce approximately the same health score.
 Do not randomly adjust scores between requests.
 
+A precalculated health score is provided in the patient profile.
+
+You MUST use that exact score as the value of
+"overall_health_score".
+
+Do not recalculate it.
+Do not modify it.
+Do not increase or decrease it.
+
 ASSESSMENT RULES
 
 STEP 1: Determine whether biomarker data is available.
@@ -141,12 +273,6 @@ Use the following risk factors:
 - Exercise frequency
 - Alcohol consumption
 - Smoking status
-
-Baseline Score Guidance:
-- Very low risk profile: 85-95
-- Mild risk factors: 70-84
-- Moderate risk factors: 55-69
-- High risk profile: 30-54
 
 When no biomarker data exists:
 - AST status must be ""
@@ -188,12 +314,6 @@ Consider:
 - APRI
 - FIB-4
 - Ultrasound findings
-
-Health Score Weighting:
-- Biomarkers & Liver Function: 60%
-- APRI/FIB-4 & Fibrosis Risk: 20%
-- Ultrasound Findings: 10%
-- Lifestyle & Comorbidities: 10%
 
 Use the MOST RECENT report values when populating biomarker flags.
 

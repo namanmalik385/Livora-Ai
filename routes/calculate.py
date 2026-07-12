@@ -20,33 +20,22 @@ def calculate():
         user_id = int(data["user_id"])
 
         age = float(data["age"])
-        ast_uln = float(patient_data["ast_uln"])
+        ast_uln = None
 
-        required_fields = [
-            "ast",
-            "alt",
-            "ast_uln"
-        ]
+        if patient_data.get("ast_uln") is not None:
+            ast_uln = float(patient_data["ast_uln"])
 
-        missing_fields = [
-            field
-            for field in required_fields
-            if field not in patient_data
-        ]
-
-        if missing_fields:
-
-            return jsonify({
-                "success": False,
-                "missing_fields": missing_fields
-            }), 400
-
-        has_platelets = patient_data.get("platelets") is not None
+        can_calculate = (
+            patient_data.get("ast") is not None
+            and patient_data.get("alt") is not None
+            and patient_data.get("platelets") is not None
+            and ast_uln is not None
+        )
 
         fib4_score = None
         apri_score = None
 
-        if has_platelets:
+        if can_calculate:
 
             fib4_score = calculate_fib4(
                 age=age,
